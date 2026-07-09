@@ -164,16 +164,6 @@ func (r *Client) communicate(buf []byte) io.Reader {
 	if err != nil {
 		log.Fatal(err)
 	}
-	// close
-	switch conn := conn.(type) {
-	case *net.TCPConn:
-		err = conn.CloseWrite()
-	case *net.UnixConn:
-		err = conn.CloseWrite()
-	}
-	if err != nil {
-		log.Fatal(err)
-	}
 	// read
 	return bufio.NewReader(conn)
 }
