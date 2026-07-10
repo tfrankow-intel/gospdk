@@ -19,7 +19,7 @@ func TestSpdk_NewClient(t *testing.T) {
 	}{
 		"testing unix": {
 			"/var/tmp/spdk.sock",
-			"unix",
+			unixProtocol,
 			false,
 		},
 		"testing tcp": {
@@ -34,7 +34,7 @@ func TestSpdk_NewClient(t *testing.T) {
 		},
 		"testing nonsense assuming unix": {
 			"nonsense",
-			"unix",
+			unixProtocol,
 			false,
 		},
 	}

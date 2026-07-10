@@ -31,6 +31,9 @@ var (
 	ErrUnexpectedSpdkCallResult = status.Error(codes.FailedPrecondition, "Unexpected SPDK call result.")
 )
 
+// unixProtocol is the network name used for unix domain socket connections
+const unixProtocol = "unix"
+
 // JSONRPC represents an interface to execute JSON RPC to SPDK
 type JSONRPC interface {
 	GetID() uint64
@@ -59,7 +62,7 @@ func NewClient(socketPath string) *Client {
 	}
 	protocol := "tcp"
 	if _, _, err := net.SplitHostPort(socketPath); err != nil {
-		protocol = "unix"
+		protocol = unixProtocol
 	}
 	log.Printf("Connection to SPDK will be via: %s detected from %s", protocol, socketPath)
 	return &Client{
@@ -93,7 +96,7 @@ func (r *Client) StartUnixListener() net.Listener {
 	if err := os.RemoveAll(r.socket); err != nil {
 		log.Fatal(err)
 	}
-	ln, err := net.Listen("unix", r.socket)
+	ln, err := net.Listen(unixProtocol, r.socket)
 	if err != nil {
 		log.Fatal("listen error:", err)
 	}
@@ -128,7 +131,7 @@ func (r *Client) Call(ctx context.Context, method string, args, result interface
 
 	log.Printf("Sending to SPDK: %s", data)
 
-	resp, _ := r.communicate(data)
+	resp := r.communicate(data)
 
 	var response RPCResponse
 	err = json.NewDecoder(resp).Decode(&response)
@@ -150,7 +153,7 @@ func (r *Client) Call(ctx context.Context, method string, args, result interface
 	return nil
 }
 
-func (r *Client) communicate(buf []byte) (io.Reader, error) {
+func (r *Client) communicate(buf []byte) io.Reader {
 	// connect
 	conn, err := net.Dial(r.transport, r.socket)
 	if err != nil {
@@ -160,7 +163,6 @@ func (r *Client) communicate(buf []byte) (io.Reader, error) {
 	_, err = conn.Write(buf)
 	if err != nil {
 		log.Fatal(err)
-		return nil, err
 	}
 	// close
 	switch conn := conn.(type) {
@@ -171,8 +173,7 @@ func (r *Client) communicate(buf []byte) (io.Reader, error) {
 	}
 	if err != nil {
 		log.Fatal(err)
-		return nil, err
 	}
 	// read
-	return bufio.NewReader(conn), nil
+	return bufio.NewReader(conn)
 }
